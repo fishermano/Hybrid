@@ -1,2 +1,2 @@
-# Hybird
+# Hybirds
 hybrid storage services

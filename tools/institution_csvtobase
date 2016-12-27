@@ -1,0 +1,45 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+__author__ = 'CYX'
+
+import aiohttp, asyncio
+import json, time
+import xlrd
+
+COLUM_FAMILY = ['reference_type' , 'uid' , 'author' , 'year' , 'title' , 'priority' , 'star' , 'url'  , 'secondary_author' , 'secondary_title' , 'place_published' , 'publisher' , 'journal' , 'volume' , 'issue' , 'number_of_volumes' , 'number' , 'pages' , 'number_of_words' , 'price' , 'section' , 'tertiary_author' , 'tertiary_title' , 'cited_count' , 'num_of_bibliographies' , 'bibliographies' , 'edition' , 'doi' , 'date_displayed' , 'date' , 'type_of_work' , 'subsidiary_author' , 'short_title' , 'alternate_title' , 'isbn_or_issn' , 'original_publication' , 'reprint_edition' , 'reviewed_item' , 'accession_number' , 'call_number' , 'subject_category' , 'category' , 'tags' , 'bib_tex_key' , 'keywords' , 'subject_headings' , 'summary' , 'impact_factor' , 'collection_scope' , 'subject' , 'memo' , 'image' , 'funding' , 'author_affiliation' , 'author_address' , 'caption' , 'translated_author' , 'translated_title' , 'translated_place_published' , 'translated_publisher' , 'database_provider' , 'language' , 'country' , 'date_accessed' , 'date_created' , 'date_modified' , 'custom_1' , 'custom_2' , 'custom_3' , 'custom_4' , 'custom_5' , 'custom_integer_1' , 'custom_integer_2' , 'custom_integer_3' , 'custom_integer_4' , 'custom_integer_5']
+#DB_HOST = '1.85.37.132'
+DB_HOST = 'localhost'
+
+async def institution_data(client, data, headers):
+	r = await client.post('http://' + DB_HOST + '/api/institution/items', data=json.dumps(data), headers = headers)
+	await r.release()
+
+workbook = xlrd.open_workbook(r'institution/institution_3_10.xlsx')
+
+sheet1_name = workbook.sheet_names()[0]
+print(sheet1_name)
+
+sheet1 = workbook.sheet_by_name(sheet1_name)
+print(sheet1.name, sheet1.nrows, sheet1.ncols)
+
+items = []
+i = None
+j = None
+for i in range(sheet1.nrows):
+	if i == 0:
+		continue
+	rows = sheet1.row_values(i)
+	item = {}
+	for j in range(len(COLUM_FAMILY)):
+		column_name = COLUM_FAMILY[j]
+		item[column_name] = sheet1.cell(i,j).value
+	items.append(item)
+
+data = {'items':items}
+headers = {'content-type': 'application/json'}
+
+with aiohttp.ClientSession() as client:
+	tasks = [institution_data(client, data, headers)]
+
+	asyncio.get_event_loop().run_until_complete(asyncio.wait(tasks))

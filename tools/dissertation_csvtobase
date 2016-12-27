@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+__author__ = 'CYX'
+
+import aiohttp, asyncio
+import json, time
+import xlrd
+
+COLUM_FAMILY = ['title', 'title_spelling', 'name', 'name_spelling', 'student_id', 'university', 'school', 'discipline', 'major', 'degree', 'degree_type', 'oral_defense_date', 'secret_level', 'submitting_date', 'foreign_title', 'mentor_name', 'mentor_work_unit', 'chinese_keywords', 'english_keywords', 'total_pages', 'num_of_bibliography', 'chinese_abstract', 'english_abstract', 'nationality', 'discipline_code', 'last_updated', 'call_num', 'full_text']
+#DB_HOST = '1.85.37.132'
+DB_HOST = 'localhost'
+
+async def dissertation_data(client, data, headers):
+	r = await client.post('http://' + DB_HOST + '/api/dissertation/items', data=json.dumps(data), headers = headers)
+	await r.release()
+
+workbook = xlrd.open_workbook(r'dissertation/dissertation_2.xlsx')
+
+sheet1_name = workbook.sheet_names()[0]
+print(sheet1_name)
+
+sheet1 = workbook.sheet_by_name(sheet1_name)
+print(sheet1.name, sheet1.nrows, sheet1.ncols)
+
+items = []
+for i in range(sheet1.nrows):
+	if i == 0:
+		continue
+	rows = sheet1.row_values(i)
+	item = {}
+	for j in range(len(COLUM_FAMILY)):
+		column_name = COLUM_FAMILY[j]
+		item[column_name] = sheet1.cell(i,j).value
+	
+	item['full_text'] = 'http://1.85.37.132/docs/' + item['full_text']
+	item['submitting_date'] = xlrd.xldate.xldate_as_datetime(item['submitting_date'], 1).strftime('%Y-%m-%d')
+	items.append(item)
+
+data = {'items':items}
+headers = {'content-type': 'application/json'}
+
+with aiohttp.ClientSession() as client:
+	tasks = [dissertation_data(client, data, headers)]
+
+	asyncio.get_event_loop().run_until_complete(asyncio.wait(tasks))

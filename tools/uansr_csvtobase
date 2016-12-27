@@ -1,0 +1,152 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+__author__ = 'CYX'
+
+import aiohttp, asyncio
+import json, time
+import xlrd
+
+COLUM_FAMILY = ['author' , 'title' , 'year' , 'orginal_publication' , 'volume' , 'issue' , 'paper_id' , 'start_page' , 'end_page' , 'page_counter' , 'citing_paper' , 'doi' , 'url' , 'institution_owner' , 'author_with_institution' , 'summary' , 'author_keyword' , 'index_keyword' , 'analysis_serial_number' , 'cas' , 'brand' , 'manufacturer' , 'funding_info' , 'reference' , 'address' , 'editor' , 'funding_agent' , 'publisher' , 'conference_title' , 'conference_date' , 'conference_location' , 'conference_code' , 'issn' , 'isbn' , 'coden' , 'pubmed_id' , 'language' , 'orginal_publication_abbr' , 'paper_type' , 'source_of_publication' , 'eid']
+#DB_HOST = '1.85.37.132'
+DB_HOST = 'localhost'
+
+DATA_ADDRESS_1 = r'u_r_/uansr_114.xlsx'
+DATA_ADDRESS_2 = r'u_r_/uansr_120.xlsx'
+DATA_ADDRESS_3 = r'u_r_/uansr_112.xlsx'
+
+async def uansr_data(client, data, headers):
+
+	for item in data['items']:
+		data_item = []
+		data_items = {}
+		data_item.append(item)
+		data_items['items'] = data_item
+		
+		r = await client.post('http://' + DB_HOST + '/api/uansr/items', data=json.dumps(data_items), headers = headers)
+		await r.release()
+
+workbook1 = xlrd.open_workbook(DATA_ADDRESS_1)
+
+sheet1_name = workbook1.sheet_names()[0]
+print(sheet1_name)
+
+sheet1 = workbook1.sheet_by_name(sheet1_name)
+print(sheet1.name, sheet1.nrows, sheet1.ncols)
+
+items1 = []
+for i in range(sheet1.nrows):
+	if i == 0:
+		continue
+	rows = sheet1.row_values(i)
+	item = {}
+	for j in range(len(COLUM_FAMILY)):
+		column_name = COLUM_FAMILY[j]
+		item[column_name] = sheet1.cell(i,j).value
+	try:
+		if isinstance(item['year'], str):
+			if len(item['year']) == 5:
+				item['year'] = int(item['year'][0:4])
+			elif len(item['year']) == 4:
+				
+				item['year'] = int(item['year'])
+			else:
+				continue
+		elif isinstance(item['year'], int):
+			pass
+		elif isinstance(item['year'], float):
+			item['year'] = int(item['year'])		
+		else:
+			continue
+	except Exception as e:
+		continue
+
+	items1.append(item)
+
+data1 = {'items':items1}
+
+workbook2 = xlrd.open_workbook(DATA_ADDRESS_2)
+
+sheet2_name = workbook2.sheet_names()[0]
+print(sheet2_name)
+
+sheet2 = workbook2.sheet_by_name(sheet2_name)
+print(sheet2.name, sheet2.nrows, sheet2.ncols)
+
+items2 = []
+for i in range(sheet2.nrows):
+	if i == 0:
+		continue
+	rows = sheet2.row_values(i)
+	item = {}
+	for j in range(len(COLUM_FAMILY)):
+		column_name = COLUM_FAMILY[j]
+		item[column_name] = sheet2.cell(i,j).value
+
+	try:
+		if isinstance(item['year'], str):
+			if len(item['year']) == 5:
+				item['year'] = int(item['year'][0:4])
+			elif len(item['year']) == 4:
+				item['year'] = int(item['year'])
+			else:
+				continue
+		elif isinstance(item['year'], int):
+			pass
+		elif isinstance(item['year'], float):
+			item['year'] = int(item['year'])
+		else:
+			continue
+	except Exception as e:
+		continue
+
+	items2.append(item)
+
+data2 = {'items':items2}
+
+'''
+workbook3 = xlrd.open_workbook(DATA_ADDRESS_3)
+
+sheet3_name = workbook3.sheet_names()[0]
+print(sheet3_name)
+
+sheet3 = workbook3.sheet_by_name(sheet3_name)
+print(sheet3.name, sheet3.nrows, sheet3.ncols)
+
+items3 = []
+for i in range(sheet3.nrows):
+	if i == 0:
+		continue
+	rows = sheet3.row_values(i)
+	item = {}
+	for j in range(len(COLUM_FAMILY)):
+		column_name = COLUM_FAMILY[j]
+		item[column_name] = sheet3.cell(i,j).value
+
+	try:
+		if isinstance(item['year'], str):
+			if len(item['year']) == 5:
+				item['year'] = int(item['year'][0:4])
+			elif len(item['year']) == 4:
+				item['year'] = int(item['year'])
+			else:
+				continue
+		elif isinstance(item['year'], int):
+			pass
+		elif isinstance(item['year'], float):
+			item['year'] = int(item['year'])
+		else:
+			continue
+	except Exception as e:
+		continue
+
+	items3.append(item)
+
+data3 = {'items':items3}
+'''
+headers = {'content-type': 'application/json'}
+
+with aiohttp.ClientSession() as client:
+	tasks = [uansr_data(client, data1, headers), uansr_data(client, data2, headers)]
+
+	asyncio.get_event_loop().run_until_complete(asyncio.wait(tasks))

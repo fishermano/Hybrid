@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+__author__ = 'CYX'
+
+import aiohttp, asyncio
+import json, time
+
+COLUM_FAMILY = ['reference_type' , 'uid' , 'author' , 'year' , 'title' , 'priority' , 'star' , 'url'  , 'secondary_author' , 'secondary_title' , 'place_published' , 'publisher' , 'journal' , 'volume' , 'issue' , 'number_of_volumes' , 'number' , 'pages' , 'number_of_words' , 'price' , 'section' , 'tertiary_author' , 'tertiary_title' , 'cited_count' , 'num_of_bibliographies' , 'bibliographies' , 'edition' , 'doi' , 'date_displayed' , 'date' , 'type_of_work' , 'subsidiary_author' , 'short_title' , 'alternate_title' , 'isbn_or_issn' , 'original_publication' , 'reprint_edition' , 'reviewed_item' , 'accession_number' , 'call_number' , 'subject_category' , 'category' , 'tags' , 'bib_tex_key' , 'keywords' , 'subject_headings' , 'summary' , 'impact_factor' , 'collection_scope' , 'subject' , 'memo' , 'image' , 'funding' , 'author_affiliation' , 'author_address' , 'caption' , 'translated_author' , 'translated_title' , 'translated_place_published' , 'translated_publisher' , 'database_provider' , 'language' , 'country' , 'date_accessed' , 'date_created' , 'date_modified' , 'custom_1' , 'custom_2' , 'custom_3' , 'custom_4' , 'custom_5' , 'custom_integer_1' , 'custom_integer_2' , 'custom_integer_3' , 'custom_integer_4' , 'custom_integer_5']
+#DB_HOST = '1.85.37.132'
+DB_HOST = 'localhost'
+
+async def institution_data(client, data, headers):
+	r = await client.post('http://' + DB_HOST + '/api/institution/items', data=json.dumps(data), headers = headers)
+	await r.release()
+
+f = open(r'institution.txt')
+rows = len(f.readlines())
+print('total rows: %d' % rows)
+chunks = int(rows / 16)
+print('total chunks: %d' % chunks)
+f.close()
+
+f = open(r'institution.txt')
+items = []
+lines = f.readlines()
+for i in range(chunks):
+	print('chunk num: %d' % i)
+	item = {}
+	for line in lines[(i * 16): (i * 16 + 15)]:
+		key = line.split(':')[0].strip()
+		value = line.split(':')[1].strip().rstrip('\n')
+
+		if key == '{Reference Type}':
+			item['reference_type'] = value
+		elif key == '{Title}':
+			item['title'] = value
+		elif key == '{Author}':
+			item['author'] = value		
+		elif key == '{Year}':
+			item['year'] = value		
+		elif key == '{Abstract}':
+			item['summary'] = value
+		elif key == '{Journal}':
+			item['journal'] = value
+		elif key == '{Keywords}':
+			item['keywords'] = value
+		elif key == '{Pages}':
+			item['pages'] = value
+		elif key == '{IndexBy}':
+			item['custom_2'] = value
+		elif key == '{ISSN}':
+			item['isbn_or_issn'] = value
+		elif key == '{URL}':
+			item['url'] = value
+		elif key == '{Language}':
+			item['language'] = value
+		elif key == '{Volume}:':
+			item['volume'] = value
+		elif key == '{Issue}:':
+			item['issue'] = value
+		elif key == '{DOI}:':
+			item['doi'] = value
+	items.append(item)
+
+f.close()
+
+print(items)
+data = {'items':items}
+headers = {'content-type': 'application/json'}
+
+with aiohttp.ClientSession() as client:
+	tasks = [institution_data(client, data, headers)]
+
+	asyncio.get_event_loop().run_until_complete(asyncio.wait(tasks))

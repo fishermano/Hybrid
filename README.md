@@ -1,2 +1,2 @@
-# Hybirds
-hybrid storage services
+# Hybrid
+hybrid tiered storage services
